@@ -88,9 +88,9 @@ public class Main {
     private static List<Flight> initializeDatabase() {
         List<Flight> database = new ArrayList<>();
         try {
-            database.add(new Flight(1238945, "Singapore", "Malaysia", 500.00f, "24-04-2023 06:30:33", 400));
-            database.add(new Flight(3123789, "Brazil", "Argentina", 1000.00f, "15-05-2023 12:30:33", 500));
-            database.add(new Flight(1222949, "Singapore", "Malaysia", 600.00f, "24-05-2023 06:30:33", 800));
+            database.add(new Flight(1238945, "Singapore", "Malaysia", 500.00f, "24-04-2023 06:30:33", 400, 400));
+            database.add(new Flight(3123789, "Brazil", "Argentina", 1000.00f, "15-05-2023 12:30:33", 500, 500));
+            database.add(new Flight(1222949, "Singapore", "Malaysia", 600.00f, "24-05-2023 06:30:33", 800, 800));
             // Add more flights as needed
         } catch (Exception e) {
             System.err.println("Error initializing database: " + e.getMessage());
@@ -128,10 +128,10 @@ public class Main {
                     }
                     break;
                 case 5:
-                    response = functions.FindLowestFareBySD(request);
+                    response = functions.findLowestFareBySD(request);
                     break;
                 case 6:
-                    response = functions.changeAirfare(request);
+                    response = functions.freeSeats(request);
                     break;
                 default:
                     response.putString(MessageKey.ERROR_MESSAGE, "Invalid option");

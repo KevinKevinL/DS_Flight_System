@@ -22,7 +22,7 @@ public class Client {
             System.out.println("3. Make seat reservation");
             System.out.println("4. Monitor seat availability");
             System.out.println("5. Find lowest price by source and destination");
-            System.out.println("6. Modify airfare");
+            System.out.println("6. Free seat");
             System.out.println("0. Exit");
             System.out.print("Enter your choice: ");
 
@@ -53,10 +53,10 @@ public class Client {
                 monitorSeatAvailability(request, scanner);
                 break;
             case 5:
-                FindLowestFareBySD(request, scanner);
+                findLowestFareBySD(request, scanner);
                 break;
             case 6:
-                modifyAirfare(request, scanner);
+                freeSeats(request, scanner);
                 break;
             default:
                 System.out.println("Invalid choice. Please try again.");
@@ -154,7 +154,7 @@ public class Client {
         request.putInt(MessageKey.SEATS, seats);
     }
 
-    private static void FindLowestFareBySD(Message request, Scanner scanner) {
+    private static void findLowestFareBySD(Message request, Scanner scanner) {
         System.out.print("Enter source: ");
         String source = scanner.next();
         System.out.print("Enter destination: ");
@@ -163,14 +163,14 @@ public class Client {
         request.putString(MessageKey.DESTINATION, destination);
     }
 
-    private static void modifyAirfare(Message request, Scanner scanner) {
+    private static void freeSeats(Message request, Scanner scanner) {
         System.out.print("Enter flight ID: ");
         int flightId = scanner.nextInt();
-        System.out.print("Enter price change (positive to increase, negative to decrease): ");
-        float priceChange = scanner.nextFloat();
+        System.out.print("Enter number of seats to free: ");
+        int seats = scanner.nextInt();
         
         request.putInt(MessageKey.FLIGHT_ID, flightId);
-        request.putFloat(MessageKey.PRICE, priceChange);
+        request.putInt(MessageKey.SEATS, seats);
     }
 
     private static void displayResponse(Message response) {

@@ -108,7 +108,7 @@ public class Functions {
     }
 
     // Case 5: Check All Destinations with Source
-    public Message FindLowestFareBySD(Message request) {
+    public Message findLowestFareBySD(Message request) {
         String source = request.getString(MessageKey.SOURCE);
         String destdestination = request.getString(MessageKey.DESTINATION);
         Message response = new Message();
@@ -147,21 +147,20 @@ public class Functions {
         
     }
 
-    // Case 6: Increase or Decrease Airfare with Flight ID
-    public Message changeAirfare(Message request) {
+    // Case 6: Free Seats with Flight ID
+    public Message freeSeats(Message request) {
         int flightID = request.getInt(MessageKey.FLIGHT_ID);
-        float priceChange = request.getFloat(MessageKey.PRICE);
+        int seatsToFree = request.getInt(MessageKey.SEATS);
         Message response = new Message();
 
         for (Flight flight : flights) {
             if (flight.getFlightID() == flightID) {
-                float newPrice = flight.getAirfare() + priceChange;
-                if (newPrice >= 0) {
-                    flight.setAirfare(newPrice);
-                    response.putString(MessageKey.SUCCESS_MESSAGE, "Airfare changed successfully!");
-                    response.putFloat(MessageKey.AIRFARE, newPrice);
+                if (flight.getSeatAvailability()+seatsToFree <= flight.getSeatMax()) {
+                    flight.setSeatAvailability(flight.getSeatAvailability() + seatsToFree);
+                    response.putString(MessageKey.SUCCESS_MESSAGE, seatsToFree + " Seats successfully freed!");
+                    response.putInt(MessageKey.SEAT_AVAILABILITY, flight.getSeatAvailability());
                 } else {
-                    response.putString(MessageKey.ERROR_MESSAGE, "Price change would make airfare negative. Not allowed.");
+                    response.putString(MessageKey.ERROR_MESSAGE, "Only " + (flight.getSeatMax()-flight.getSeatAvailability()) + " seat(s) can be freed. Freeing failed.");
                 }
                 return response;
             }
