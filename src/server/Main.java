@@ -63,9 +63,13 @@ public class Main {
 
     private static List<Flight> initializeDatabase() {
         List<Flight> database = new ArrayList<>();
-        database.add(new Flight(1238945, "Singapore", "Malaysia", "24-04-2023 06:30:33", 500.00f, 400));
-        database.add(new Flight(3123789, "Brazil", "Argentina", "15-05-2023 12:30:33", 1000.00f, 500));
-        // Add more flights as needed
+        database.add(new Flight(1238945, "Singapore", "Malaysia", 500.00f, "24-04-2023 06:30:33", 400));
+        database.add(new Flight(3123789, "Brazil", "Argentina", 1000.00f, "15-05-2023 12:30:33", 500));
+        database.add(new Flight(5478228, "Taiwan", "Japan", 750.00f, "19-08-2023 10:15:21", 500));
+        database.add(new Flight(5244699, "Poland", "Netherlands", 750.00f, "03-01-2023 03:17:22", 750));
+        database.add(new Flight(4798721, "Egypt", "Spain", 800.00f, "05-30-2023 13:49:01", 500));
+        database.add(new Flight(7811231, "USA", "UK", 1250.00f, "11-11-2023 06:42:22", 1000));
+
         return database;
     }
 
