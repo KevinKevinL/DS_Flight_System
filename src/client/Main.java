@@ -73,13 +73,48 @@ public class Client {
         socket.send(packet);
     }
 
-    private static void receiveResponse() throws IOException {
+    private static void monitorSeatAvailability(Message request, Scanner scanner) throws IOException {
+        System.out.print("Enter flight ID to monitor: ");
+        int flightId = scanner.nextInt();
+        System.out.print("Enter monitor interval (in seconds): ");
+        int monitorInterval = scanner.nextInt();
+        
+        request.putInt(MessageKey.FLIGHT_ID, flightId);
+        request.putInt(MessageKey.MONITOR_INTERVAL, monitorInterval);
+
+        sendRequest(request);
+
+        System.out.println("Monitoring seat availability for Flight ID: " + flightId);
+        System.out.println("Monitoring for " + monitorInterval + " seconds...");
+
+        long startTime = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startTime < monitorInterval * 1000) {
+            try {
+                socket.setSoTimeout(1000);
+                Message update = receiveResponse();
+                if (update.getInt(MessageKey.FLIGHT_ID) != null && update.getInt(MessageKey.SEAT_AVAILABILITY) != null) {
+                    System.out.println("Update for Flight ID: " + update.getInt(MessageKey.FLIGHT_ID));
+                    System.out.println("New Seat Availability: " + update.getInt(MessageKey.SEAT_AVAILABILITY));
+                }
+            } catch (SocketTimeoutException e) {
+                // 超时，继续循环
+            } catch (IOException e) {
+                System.err.println("Error receiving update: " + e.getMessage());
+            }
+        }
+
+        System.out.println("Monitoring ended for Flight ID: " + flightId);
+        socket.setSoTimeout(0);
+    }
+
+    private static Message receiveResponse() throws IOException {
         byte[] buffer = new byte[1024];
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
         socket.receive(packet);
+        return Marshaller.unmarshall(packet.getData());
 
-        Message response = Marshaller.unmarshall(packet.getData());
-        displayResponse(response);
+        //Message response = Marshaller.unmarshall(packet.getData());
+        //displayResponse(response);
     }
 
     private static int generateRequestId() {
@@ -111,16 +146,6 @@ public class Client {
         
         request.putInt(MessageKey.FLIGHT_ID, flightId);
         request.putInt(MessageKey.SEATS, seats);
-    }
-
-    private static void monitorSeatAvailability(Message request, Scanner scanner) {
-        System.out.print("Enter flight ID to monitor: ");
-        int flightId = scanner.nextInt();
-        System.out.print("Enter monitor interval (in seconds): ");
-        int monitorInterval = scanner.nextInt();
-        
-        request.putInt(MessageKey.FLIGHT_ID, flightId);
-        request.putInt(MessageKey.MONITOR_INTERVAL, monitorInterval);
     }
 
     private static void queryAllDestinations(Message request, Scanner scanner) {
