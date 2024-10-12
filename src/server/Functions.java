@@ -108,26 +108,43 @@ public class Functions {
     }
 
     // Case 5: Check All Destinations with Source
-    public Message checkAllDestinations(Message request) {
+    public Message FindLowestFareBySD(Message request) {
         String source = request.getString(MessageKey.SOURCE);
+        String destdestination = request.getString(MessageKey.DESTINATION);
         Message response = new Message();
-        List<String> destinations = new ArrayList<>();
-
+        //设置一个flight数组
+        Flight[] SDFlights = new Flight[10];
+        int i = 0;
         for (Flight flight : flights) {
             if (flight.getSource().equals(source)) {
-                destinations.add(flight.getDestination());
-                response.putString(MessageKey.DESTINATION, flight.getDestination());
-                response.putFloat(MessageKey.AIRFARE, flight.getAirfare());
+                if (flight.getDestination().equals(destdestination)) {
+                    SDFlights[i] = flight;
+                    i++;
+                }
             }
         }
-
-        if (!destinations.isEmpty()) {
-            response.putString(MessageKey.SUCCESS_MESSAGE, "Retrieved destinations successfully!");
-        } else {
-            response.putString(MessageKey.ERROR_MESSAGE, "No flights found with source " + source + ".");
+        if(i==0){
+            response.putString(MessageKey.ERROR_MESSAGE, "No flights found with source " + source + " and destination " + destdestination + ".");
+            return response;
         }
-
-        return response;
+        else{
+            //找到最小的价格
+            float minFare = SDFlights[0].getAirfare();
+            Flight minFlight = SDFlights[0];
+            for (int j = 1; j < i; j++) {
+                if (SDFlights[j].getAirfare() < minFare) {
+                    minFare = SDFlights[j].getAirfare();
+                    minFlight = SDFlights[j];
+                }
+            }
+            response.putString(MessageKey.SUCCESS_MESSAGE, "Successfully retrieved Flight Identifier(s)!");
+            response.putFloat(MessageKey.AIRFARE, minFare);
+            response.putInt(MessageKey.FLIGHT_ID, minFlight.getFlightID());
+            response.putString(MessageKey.DEPARTURE_TIME, minFlight.getDepartureTime());
+            response.putInt(MessageKey.SEAT_AVAILABILITY, minFlight.getSeatAvailability());
+            return response;    
+        }
+        
     }
 
     // Case 6: Increase or Decrease Airfare with Flight ID

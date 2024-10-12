@@ -21,7 +21,7 @@ public class Client {
             System.out.println("2. Query flight details");
             System.out.println("3. Make seat reservation");
             System.out.println("4. Monitor seat availability");
-            System.out.println("5. Query all destinations from a source");
+            System.out.println("5. Find lowest price by source and destination");
             System.out.println("6. Modify airfare");
             System.out.println("0. Exit");
             System.out.print("Enter your choice: ");
@@ -53,7 +53,7 @@ public class Client {
                 monitorSeatAvailability(request, scanner);
                 break;
             case 5:
-                queryAllDestinations(request, scanner);
+                FindLowestFareBySD(request, scanner);
                 break;
             case 6:
                 modifyAirfare(request, scanner);
@@ -154,11 +154,13 @@ public class Client {
         request.putInt(MessageKey.SEATS, seats);
     }
 
-    private static void queryAllDestinations(Message request, Scanner scanner) {
+    private static void FindLowestFareBySD(Message request, Scanner scanner) {
         System.out.print("Enter source: ");
         String source = scanner.next();
-        
+        System.out.print("Enter destination: ");
+        String destination = scanner.next();
         request.putString(MessageKey.SOURCE, source);
+        request.putString(MessageKey.DESTINATION, destination);
     }
 
     private static void modifyAirfare(Message request, Scanner scanner) {
