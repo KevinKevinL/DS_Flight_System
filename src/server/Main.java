@@ -60,17 +60,17 @@ public class Main {
             sendErrorResponse(serverSocket, inputPacket.getSocketAddress(), "Invalid message format");
             return;
         }
-
+    
         try {
             int option = receivedMessage.getInt(MessageKey.OPTION);
             String requestId = receivedMessage.getString(MessageKey.REQUEST_ID);
             requestIdGlobal = requestId;
-
+    
             if (history.containsKey(requestIdGlobal) && !isAtLeastOnce) {
                 System.out.println("RequestId found in history " + requestIdGlobal);
                 sendResponse(serverSocket, inputPacket.getSocketAddress(), history.get(requestId));
             } else {
-                Message response = processRequest(serverSocket, option, receivedMessage, database, listeners);
+                Message response = processRequest(serverSocket, option, receivedMessage, database, listeners, inputPacket.getSocketAddress());
                 sendResponse(serverSocket, inputPacket.getSocketAddress(), response);
                 history.put(requestIdGlobal, response);
             }
@@ -84,6 +84,7 @@ public class Main {
         }
     }
 
+
     private static List<Flight> initializeDatabase() {
         List<Flight> database = new ArrayList<>();
         try {
@@ -96,10 +97,10 @@ public class Main {
         return database;
     }
 
-    private static Message processRequest(DatagramSocket serverSocket, int option, Message request, List<Flight> database, Map<SocketAddress, MonitorInfo> listeners) {
+    private static Message processRequest(DatagramSocket serverSocket, int option, Message request, List<Flight> database, Map<SocketAddress, MonitorInfo> listeners, SocketAddress clientAddress) {
         Functions functions = new Functions(database);
         Message response = new Message();
-
+        System.out.println("Processing request with option: " + option);
         try {
             switch (option) {
                 case 1:
@@ -109,11 +110,21 @@ public class Main {
                     response = functions.checkFlightDetails(request);
                     break;
                 case 3:
+                    System.out.println("Booking seats...");
                     response = functions.bookSeats(request);
+                    System.out.println("Seats booked. Response: " + response.getValues());
+                    System.out.println("Number of listeners before notification: " + listeners.size());
                     notifyListeners(serverSocket, listeners, database);
+                    System.out.println("Notification process completed");
                     break;
                 case 4:
                     response = functions.monitorSeatAvailability(request);
+                    if (response.getString(MessageKey.ERROR_MESSAGE) == null) {
+                        int flightId = request.getInt(MessageKey.FLIGHT_ID);
+                        int monitorInterval = request.getInt(MessageKey.MONITOR_INTERVAL);
+                        listeners.put(clientAddress, new MonitorInfo(flightId, monitorInterval, clientAddress));
+                        response.putString(MessageKey.SUCCESS_MESSAGE, "Monitoring started for Flight ID: " + flightId);
+                    }
                     break;
                 case 5:
                     response = functions.checkAllDestinations(request);
@@ -149,25 +160,37 @@ public class Main {
     }
 
     private static void notifyListeners(DatagramSocket serverSocket, Map<SocketAddress, MonitorInfo> listeners, List<Flight> database) {
+        System.out.println("Entering notifyListeners method");
+        System.out.println("Number of listeners: " + listeners.size());
+        
         Iterator<Map.Entry<SocketAddress, MonitorInfo>> iterator = listeners.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<SocketAddress, MonitorInfo> entry = iterator.next();
             MonitorInfo info = entry.getValue();
+            System.out.println("Processing listener for Flight ID: " + info.getFlightId());
+            
             if (info.isExpired()) {
+                System.out.println("Removing expired listener for Flight ID: " + info.getFlightId());
                 iterator.remove();
             } else {
                 for (Flight flight : database) {
                     if (flight.getFlightID() == info.getFlightId()) {
-                        // 创建并发送更新消息给客户端
                         Message updateMsg = new Message();
                         updateMsg.putInt(MessageKey.FLIGHT_ID, flight.getFlightID());
                         updateMsg.putInt(MessageKey.SEAT_AVAILABILITY, flight.getSeatAvailability());
-                        sendResponse(serverSocket, info.getClientAddress(), updateMsg);
+                        try {
+                            System.out.println("Sending update to listener for Flight ID: " + flight.getFlightID());
+                            sendResponse(serverSocket, info.getClientAddress(), updateMsg);
+                            System.out.println("Update sent successfully");
+                        } catch (Exception e) {
+                            System.err.println("Error sending update to listener: " + e.getMessage());
+                        }
                         break;
                     }
                 }
             }
         }
+        System.out.println("Exiting notifyListeners method");
     }
 
     private static class MonitorInfo {

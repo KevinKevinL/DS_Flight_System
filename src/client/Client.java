@@ -64,7 +64,7 @@ public class Client {
         }
 
         sendRequest(request);
-        receiveResponse();
+        receiveResponse1();
     }
 
     private static void sendRequest(Message request) throws IOException {
@@ -81,12 +81,13 @@ public class Client {
         
         request.putInt(MessageKey.FLIGHT_ID, flightId);
         request.putInt(MessageKey.MONITOR_INTERVAL, monitorInterval);
-
+    
         sendRequest(request);
-
+        receiveResponse1(); // 接收初始响应
+    
         System.out.println("Monitoring seat availability for Flight ID: " + flightId);
         System.out.println("Monitoring for " + monitorInterval + " seconds...");
-
+    
         long startTime = System.currentTimeMillis();
         while (System.currentTimeMillis() - startTime < monitorInterval * 1000) {
             try {
@@ -102,7 +103,7 @@ public class Client {
                 System.err.println("Error receiving update: " + e.getMessage());
             }
         }
-
+    
         System.out.println("Monitoring ended for Flight ID: " + flightId);
         socket.setSoTimeout(0);
     }
@@ -112,9 +113,14 @@ public class Client {
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
         socket.receive(packet);
         return Marshaller.unmarshall(packet.getData());
+    }
 
-        //Message response = Marshaller.unmarshall(packet.getData());
-        //displayResponse(response);
+    private static void receiveResponse1() throws IOException {
+        byte[] buffer = new byte[1024];
+        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+        socket.receive(packet);
+        Message response = Marshaller.unmarshall(packet.getData());
+        displayResponse(response);
     }
 
     private static int generateRequestId() {
