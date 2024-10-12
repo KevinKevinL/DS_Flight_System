@@ -70,7 +70,7 @@ public class Main {
                 System.out.println("RequestId found in history " + requestIdGlobal);
                 sendResponse(serverSocket, inputPacket.getSocketAddress(), history.get(requestId));
             } else {
-                Message response = processRequest(option, receivedMessage, database, listeners);
+                Message response = processRequest(serverSocket, option, receivedMessage, database, listeners);
                 sendResponse(serverSocket, inputPacket.getSocketAddress(), response);
                 history.put(requestIdGlobal, response);
             }
@@ -96,7 +96,7 @@ public class Main {
         return database;
     }
 
-    private static Message processRequest(int option, Message request, List<Flight> database, Map<SocketAddress, MonitorInfo> listeners) {
+    private static Message processRequest(DatagramSocket serverSocket, int option, Message request, List<Flight> database, Map<SocketAddress, MonitorInfo> listeners) {
         Functions functions = new Functions(database);
         Message response = new Message();
 
@@ -110,7 +110,7 @@ public class Main {
                     break;
                 case 3:
                     response = functions.bookSeats(request);
-                    notifyListeners(listeners, database);
+                    notifyListeners(serverSocket, listeners, database);
                     break;
                 case 4:
                     response = functions.monitorSeatAvailability(request);
@@ -148,11 +148,55 @@ public class Main {
         sendResponse(socket, address, errorResponse);
     }
 
-    private static void notifyListeners(Map<SocketAddress, MonitorInfo> listeners, List<Flight> database) {
-        // Implementation remains the same
+    private static void notifyListeners(DatagramSocket serverSocket, Map<SocketAddress, MonitorInfo> listeners, List<Flight> database) {
+        Iterator<Map.Entry<SocketAddress, MonitorInfo>> iterator = listeners.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<SocketAddress, MonitorInfo> entry = iterator.next();
+            MonitorInfo info = entry.getValue();
+            if (info.isExpired()) {
+                iterator.remove();
+            } else {
+                for (Flight flight : database) {
+                    if (flight.getFlightID() == info.getFlightId()) {
+                        // 创建并发送更新消息给客户端
+                        Message updateMsg = new Message();
+                        updateMsg.putInt(MessageKey.FLIGHT_ID, flight.getFlightID());
+                        updateMsg.putInt(MessageKey.SEAT_AVAILABILITY, flight.getSeatAvailability());
+                        sendResponse(serverSocket, info.getClientAddress(), updateMsg);
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     private static class MonitorInfo {
-        // Implementation remains the same
+        private int flightId;
+        private long startTime;
+        private int monitorInterval;
+        private SocketAddress clientAddress;
+
+        public MonitorInfo(int flightId, int monitorInterval, SocketAddress clientAddress) {
+            this.flightId = flightId;
+            this.startTime = System.currentTimeMillis();
+            this.monitorInterval = monitorInterval;
+            this.clientAddress = clientAddress;
+        }
+
+        public boolean isExpired() {
+            return System.currentTimeMillis() - startTime > monitorInterval * 1000;
+        }
+
+        public int getFlightId() {
+            return flightId;
+        }
+
+        public SocketAddress getClientAddress() {
+            return clientAddress;
+        }
+
+        public void resetStartTime() {
+            this.startTime = System.currentTimeMillis();
+        }
     }
 }
