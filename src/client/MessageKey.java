@@ -1,4 +1,4 @@
-package server;
+package client;
 //消息键是一个枚举，它包含了所有可能的消息键，每个键都有一个整数值。
 //这个整数值用于在消息序列化和反序列化时标识键。
 public enum MessageKey {

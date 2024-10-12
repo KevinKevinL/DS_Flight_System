@@ -51,4 +51,7 @@ public class Flight implements Serializable {
    public void setFlightID(Integer var1) {
       this.flightID = var1;
    }
+   public void setAirfare(Float newPrice) {
+    this.airfare = newPrice;
+}
 }

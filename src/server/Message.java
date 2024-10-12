@@ -29,8 +29,15 @@ public class Message {
     }
 
     public String getString(MessageKey key) {
-        return (String) values.get(key);
+    Object value = values.get(key);
+    if (value instanceof String) {
+        return (String) value;
+    } else if (value instanceof Integer) {
+        // 如果值是 Integer，将其转换为 String
+        return String.valueOf(value);
     }
+    return null; // 或者抛出一个异常
+}
 
     public Integer getInt(MessageKey key) {
         return (Integer) values.get(key);

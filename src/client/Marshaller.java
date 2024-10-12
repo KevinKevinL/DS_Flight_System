@@ -1,4 +1,4 @@
-package server;
+package client;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
