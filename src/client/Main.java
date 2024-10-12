@@ -82,26 +82,83 @@ public class Client {
         displayResponse(response);
     }
 
-    private static void displayResponse(Message response) {
-        // Implement response display logic based on the message content
-        // This will vary depending on the type of response
-    }
-
     private static int generateRequestId() {
-        // Implement a method to generate unique request IDs
         return (int) (Math.random() * 1000000);
     }
 
-    // Implement methods for each user choice (queryFlightIdentifier, queryFlightDetails, etc.)
-    // These methods should prompt the user for necessary input and populate the request message
-
     private static void queryFlightIdentifier(Message request, Scanner scanner) {
-        // Implement logic to get source and destination from user and add to request
+        System.out.print("Enter source: ");
+        String source = scanner.next();
+        System.out.print("Enter destination: ");
+        String destination = scanner.next();
+        
+        request.putString(MessageKey.SOURCE, source);
+        request.putString(MessageKey.DESTINATION, destination);
     }
 
     private static void queryFlightDetails(Message request, Scanner scanner) {
-        // Implement logic to get flight ID from user and add to request
+        System.out.print("Enter flight ID: ");
+        int flightId = scanner.nextInt();
+        
+        request.putInt(MessageKey.FLIGHT_ID, flightId);
     }
 
-    // ... Implement other methods for remaining choices ...
+    private static void makeSeatReservation(Message request, Scanner scanner) {
+        System.out.print("Enter flight ID: ");
+        int flightId = scanner.nextInt();
+        System.out.print("Enter number of seats to reserve: ");
+        int seats = scanner.nextInt();
+        
+        request.putInt(MessageKey.FLIGHT_ID, flightId);
+        request.putInt(MessageKey.SEATS, seats);
+    }
+
+    private static void monitorSeatAvailability(Message request, Scanner scanner) {
+        System.out.print("Enter flight ID to monitor: ");
+        int flightId = scanner.nextInt();
+        System.out.print("Enter monitor interval (in seconds): ");
+        int monitorInterval = scanner.nextInt();
+        
+        request.putInt(MessageKey.FLIGHT_ID, flightId);
+        request.putInt(MessageKey.MONITOR_INTERVAL, monitorInterval);
+    }
+
+    private static void queryAllDestinations(Message request, Scanner scanner) {
+        System.out.print("Enter source: ");
+        String source = scanner.next();
+        
+        request.putString(MessageKey.SOURCE, source);
+    }
+
+    private static void modifyAirfare(Message request, Scanner scanner) {
+        System.out.print("Enter flight ID: ");
+        int flightId = scanner.nextInt();
+        System.out.print("Enter price change (positive to increase, negative to decrease): ");
+        float priceChange = scanner.nextFloat();
+        
+        request.putInt(MessageKey.FLIGHT_ID, flightId);
+        request.putFloat(MessageKey.PRICE, priceChange);
+    }
+
+    private static void displayResponse(Message response) {
+        if (response.getString(MessageKey.ERROR_MESSAGE) != null) {
+            System.out.println("Error: " + response.getString(MessageKey.ERROR_MESSAGE));
+        } else if (response.getString(MessageKey.SUCCESS_MESSAGE) != null) {
+            System.out.println("Success: " + response.getString(MessageKey.SUCCESS_MESSAGE));
+            
+            if (response.getInt(MessageKey.FLIGHT_ID) != null) {
+                System.out.println("Flight ID: " + response.getInt(MessageKey.FLIGHT_ID));
+            }
+            if (response.getString(MessageKey.DEPARTURE_TIME) != null) {
+                System.out.println("Departure Time: " + response.getString(MessageKey.DEPARTURE_TIME));
+            }
+            if (response.getFloat(MessageKey.AIRFARE) != null) {
+                System.out.println("Airfare: " + response.getFloat(MessageKey.AIRFARE));
+            }
+            if (response.getInt(MessageKey.SEAT_AVAILABILITY) != null) {
+                System.out.println("Available Seats: " + response.getInt(MessageKey.SEAT_AVAILABILITY));
+            }
+            // Other possible response fields...
+        }
+    }
 }
