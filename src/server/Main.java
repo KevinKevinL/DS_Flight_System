@@ -87,8 +87,8 @@ public class Main {
     private static List<Flight> initializeDatabase() {
         List<Flight> database = new ArrayList<>();
         try {
-            database.add(new Flight(1238945, "Singapore", "Malaysia", "24-04-2023 06:30:33", 500.00f, 400));
-            database.add(new Flight(3123789, "Brazil", "Argentina", "15-05-2023 12:30:33", 1000.00f, 500));
+            database.add(new Flight(1238945, "Singapore", "Malaysia", 500.00f, "24-04-2023 06:30:33", 400));
+            database.add(new Flight(3123789, "Brazil", "Argentina", 1000.00f, "15-05-2023 12:30:33", 500));
             // Add more flights as needed
         } catch (Exception e) {
             System.err.println("Error initializing database: " + e.getMessage());
