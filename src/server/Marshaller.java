@@ -1,12 +1,10 @@
 package server;
-//Marshaller类包含了两个静态方法，用于将消息对象序列化为字节数组，
-//或者将字节数组反序列化为消息对象。
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Map;
 
 public class Marshaller {
-
     public static byte[] marshall(Message message) {
         ByteBuffer buffer = ByteBuffer.allocate(1024).order(ByteOrder.BIG_ENDIAN);
         for (Map.Entry<MessageKey, Object> entry : message.getValues().entrySet()) {
@@ -22,12 +20,15 @@ public class Marshaller {
                 buffer.put(bytes);
             } else if (value instanceof Integer) {
                 buffer.put((byte) 'I');
+                buffer.put((byte) 4); // Integer always 4 bytes
                 buffer.putInt((Integer) value);
             } else if (value instanceof Float) {
                 buffer.put((byte) 'F');
+                buffer.put((byte) 4); // Float always 4 bytes
                 buffer.putFloat((Float) value);
             } else if (value instanceof Boolean) {
                 buffer.put((byte) 'B');
+                buffer.put((byte) 1); // Boolean always 1 byte
                 buffer.put((byte) (((Boolean) value) ? 1 : 0));
             }
         }
@@ -46,9 +47,9 @@ public class Marshaller {
             if (key == 0) break;  // End marker
             MessageKey messageKey = MessageKey.fromValue(key);
             byte type = buffer.get();
+            byte length = buffer.get();
             switch (type) {
                 case 'S':
-                    int length = buffer.get() & 0xFF;
                     byte[] bytes = new byte[length];
                     buffer.get(bytes);
                     message.putString(messageKey, new String(bytes));
