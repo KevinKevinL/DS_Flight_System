@@ -1,55 +1,54 @@
+// Source code is decompiled from a .class file using FernFlower decompiler.
 package server;
-//Flight类是一个简单的Java类，它包含了一些属性，
-//如航班ID、出发地、目的地、票价、出发时间和座位可用性。
+
 import java.io.Serializable;
 
-public class Flight implements Serializable{
-    integer flightID;
-    string source;
-    string destination;
-    float airfare;
-    string departureTime;
-    integer seatAvailability;
+public class Flight implements Serializable {
+   private Integer flightID;
+   private String source;
+   private String destination;
+   private Float airfare;
+   private String departureTime;
+   private Integer seatAvailability;
 
-    public Flight(integer flightID, string source, string destination, float airfare, string departureTime, integer seatAvailability){
-        this.flightID = flightID;
-        this.source = source;
-        this.destination = destination;
-        this.airfare = airfare;
-        this.departureTime = departureTime;
-        this.seatAvailability = seatAvailability;
-    }
+   public Flight(Integer var1, String var2, String var3, Float var4, String var5, Integer var6) {
+      this.flightID = var1;
+      this.source = var2;
+      this.destination = var3;
+      this.airfare = var4;
+      this.departureTime = var5;
+      this.seatAvailability = var6;
+   }
 
-    public integer getFlightID(){
-        return flightID;
-    }
+   public Integer getFlightID() {
+      return this.flightID;
+   }
 
-    public string getSource(){
-        return source;
-    }
+   public String getSource() {
+      return this.source;
+   }
 
-    public string getDestination(){
-        return destination;
-    }
+   public String getDestination() {
+      return this.destination;
+   }
 
-    public float getAirfare(){
-        return airfare;
-    }
+   public Float getAirfare() {
+      return this.airfare;
+   }
 
-    public string getDepartureTime(){
-        return departureTime;
-    }
+   public String getDepartureTime() {
+      return this.departureTime;
+   }
 
-    public integer getSeatAvailability(){
-        return seatAvailability;
-    }
+   public Integer getSeatAvailability() {
+      return this.seatAvailability;
+   }
 
-    public void setSeatAvailability(integer seatAvailability){
-        this.seatAvailability = seatAvailability;
-    }
+   public void setSeatAvailability(Integer var1) {
+      this.seatAvailability = var1;
+   }
 
-    public void setFlightID(integer flightID){
-        this.flightID = flightID;
-    }
-    
+   public void setFlightID(Integer var1) {
+      this.flightID = var1;
+   }
 }
