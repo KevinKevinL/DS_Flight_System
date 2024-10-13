@@ -54,7 +54,7 @@ public class Client_test {
                 break;
             case 4:
                 monitorSeatAvailability(request, scanner);
-                return; // 直接返回，不执行sendRequest和receiveResponse
+                return; 
             case 5:
                 findLowestFareBySD(request, scanner);
                 break;
