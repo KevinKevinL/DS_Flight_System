@@ -1,23 +1,19 @@
 package server;
-/*
-Functions类包含了一系列方法，用于处理客户端请求。
-注意，Functions不含任何服务器相关的逻辑，它只是一个各种功能的集合。
-移除了所有与DatagramSocket和DatagramPacket相关的代码。
-所有方法现在只处理Message对象，不再直接发送数据包。
-移除了listeners相关的逻辑，因为这应该由服务器主类来处理。
-monitorSeatAvailability方法现在只返回一个确认消息，实际的监控逻辑应该在服务器主类中实现。
-Functions类更专注于业务逻辑，不涉及任何网络通信细节。
-要使用这个类，需要在服务器的主类中实例化它，并在收到客户端请求时调用相应的方法。
-主类将负责处理所有的网络通信，包括接收请求、调用Functions类的方法、发送响应，以及管理监控和回调等功能。
-*/
+
+import java.net.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 public class Functions {
 
     private List<Flight> flights;
+    private Map<Integer, List<MonitorCallback>> monitorCallbacks;
+    private ScheduledExecutorService scheduler;
 
     public Functions(List<Flight> flights) {
         this.flights = flights;
+        this.monitorCallbacks = new ConcurrentHashMap<>();
+        this.scheduler = Executors.newScheduledThreadPool(1);
     }
 
     // Case 1: Check Flight ID
@@ -88,22 +84,22 @@ public class Functions {
     }
 
     // Case 4: Monitor Seat Availability
-    public Message monitorSeatAvailability(Message request) {
-        int flightID = request.getInt(MessageKey.FLIGHT_ID);
+    public Message monitorSeatAvailability(Message request, SocketAddress clientAddress, DatagramSocket serverSocket) {
+        int flightId = request.getInt(MessageKey.FLIGHT_ID);
         int monitorInterval = request.getInt(MessageKey.MONITOR_INTERVAL);
-        Message response = new Message();
-
-        for (Flight flight : flights) {
-            if (flight.getFlightID() == flightID) {
-                // Here we just acknowledge the monitoring request
-                // The actual monitoring logic should be implemented in the server class
-                response.putString(MessageKey.SUCCESS_MESSAGE, "Monitoring request received for Flight ID " + flightID);
-                response.putInt(MessageKey.MONITOR_INTERVAL, monitorInterval);
-                return response;
+        
+        MonitorCallback callback = new MonitorCallback(flightId, clientAddress, serverSocket);
+        monitorCallbacks.computeIfAbsent(flightId, k -> new ArrayList<>()).add(callback);
+        
+        scheduler.schedule(() -> {
+            List<MonitorCallback> callbacks = monitorCallbacks.get(flightId);
+            if (callbacks != null) {
+                callbacks.remove(callback);
             }
-        }
+        }, monitorInterval, TimeUnit.SECONDS);
 
-        response.putString(MessageKey.ERROR_MESSAGE, "No flight found with Flight ID " + flightID + ".");
+        Message response = new Message();
+        response.putString(MessageKey.SUCCESS_MESSAGE, "Monitoring started for Flight ID: " + flightId);
         return response;
     }
 
@@ -168,5 +164,49 @@ public class Functions {
 
         response.putString(MessageKey.ERROR_MESSAGE, "No flight found with Flight ID " + flightID + ".");
         return response;
+    }
+    
+    public void notifyMonitorCallbacks() {
+        for (Map.Entry<Integer, List<MonitorCallback>> entry : monitorCallbacks.entrySet()) {
+            int flightId = entry.getKey();
+            List<MonitorCallback> callbacks = entry.getValue();
+            
+            Flight flight = flights.stream()
+                .filter(f -> f.getFlightID() == flightId)
+                .findFirst()
+                .orElse(null);
+            
+            if (flight != null) {
+                Message updateMsg = new Message();
+                updateMsg.putInt(MessageKey.FLIGHT_ID, flight.getFlightID());
+                updateMsg.putInt(MessageKey.SEAT_AVAILABILITY, flight.getSeatAvailability());
+                
+                for (MonitorCallback callback : callbacks) {
+                    callback.onSeatAvailabilityChange(updateMsg);
+                }
+            }
+        }
+    }
+
+    private static class MonitorCallback {
+        private int flightId;
+        private SocketAddress clientAddress;
+        private DatagramSocket serverSocket;
+
+        public MonitorCallback(int flightId, SocketAddress clientAddress, DatagramSocket serverSocket) {
+            this.flightId = flightId;
+            this.clientAddress = clientAddress;
+            this.serverSocket = serverSocket;
+        }
+
+        public void onSeatAvailabilityChange(Message updateMsg) {
+            try {
+                byte[] responseData = Marshaller.marshall(updateMsg);
+                DatagramPacket responsePacket = new DatagramPacket(responseData, responseData.length, clientAddress);
+                serverSocket.send(responsePacket);
+            } catch (Exception e) {
+                System.err.println("Error sending update to client: " + e.getMessage());
+            }
+        }
     }
 }

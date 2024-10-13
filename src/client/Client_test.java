@@ -5,7 +5,7 @@ import java.net.*;
 import java.util.Scanner;
 import java.util.concurrent.*;
 
-public class Client {
+public class Client_test {
     private static final String SERVER_ADDRESS = "localhost";
     private static final int SERVER_PORT = 50001;
     private static DatagramSocket socket;
@@ -40,7 +40,7 @@ public class Client {
     private static void processUserChoice(int choice, Scanner scanner) throws IOException {
         Message request = new Message();
         request.putInt(MessageKey.OPTION, choice);
-        request.putInt(MessageKey.REQUEST_ID, generateRequestId());
+        request.putInt(MessageKey.REQUEST_ID, 100);
 
         switch (choice) {
             case 1:
