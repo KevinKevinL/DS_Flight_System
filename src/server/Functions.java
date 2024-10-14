@@ -85,17 +85,17 @@ public class Functions {
 
     // Case 4: Monitor Seat Availability
     public Message monitorSeatAvailability(Message request, SocketAddress clientAddress, DatagramSocket serverSocket) {
-        //获取flightId和monitorInterval
+        //get flightId and monitorInterval
         int flightId = request.getInt(MessageKey.FLIGHT_ID);
         int monitorInterval = request.getInt(MessageKey.MONITOR_INTERVAL);
 
-        //创建一个MonitorCallback对象
+        //create MonitorCallback
         MonitorCallback callback = new MonitorCallback(flightId, clientAddress, serverSocket);
-        //将MonitorCallback对象加入monitorCallbacks
+        //put MonitorCallback in monitorCallbacks
         monitorCallbacks.computeIfAbsent(flightId, k -> new ArrayList<>()).add(callback);
         
-        //创建一个新的线程，用于在monitorInterval秒后
-        //将MonitorCallback对象从monitorCallbacks中移除
+        //Create a new thread to execute after `monitorInterval` seconds.
+        //Remove the `MonitorCallback` object from `monitorCallbacks`.
         scheduler.schedule(() -> {
             List<MonitorCallback> callbacks = monitorCallbacks.get(flightId);
             if (callbacks != null) {
@@ -113,7 +113,7 @@ public class Functions {
         String source = request.getString(MessageKey.SOURCE);
         String destdestination = request.getString(MessageKey.DESTINATION);
         Message response = new Message();
-        //设置一个flight数组
+        //set flight array
         Flight[] SDFlights = new Flight[10];
         int i = 0;
         for (Flight flight : flights) {
@@ -129,7 +129,7 @@ public class Functions {
             return response;
         }
         else{
-            //找到最小的价格
+            //find the cheapest price
             float minFare = SDFlights[0].getAirfare();
             Flight minFlight = SDFlights[0];
             for (int j = 1; j < i; j++) {
@@ -186,20 +186,20 @@ public class Functions {
     //通知所有监控的客户端的回调函数
     public void notifyMonitorCallbacks() {
         for (Map.Entry<Integer, List<MonitorCallback>> entry : monitorCallbacks.entrySet()) {
-            //获取flightId和callbacks
+            //get flightId and callbacks
             int flightId = entry.getKey();
             List<MonitorCallback> callbacks = entry.getValue();
-            //查找flightId对应的flight
+            //Find the flight corresponding to the `flightId`.
             Flight flight = flights.stream()
                 .filter(f -> f.getFlightID() == flightId)
                 .findFirst()
                 .orElse(null);
-            //如果flight不为空，发送更新消息给客户端
+            //If the flight is not null, send an update message to the client.
             if (flight != null) {
                 Message updateMsg = new Message();
                 updateMsg.putInt(MessageKey.FLIGHT_ID, flight.getFlightID());
                 updateMsg.putInt(MessageKey.SEAT_AVAILABILITY, flight.getSeatAvailability());
-                //给每个MonitorCallback对象发送更新消息
+                //Send the update message to each `MonitorCallback` object.
                 for (MonitorCallback callback : callbacks) {
                     callback.onSeatAvailabilityChange(updateMsg);
                 }
@@ -207,7 +207,7 @@ public class Functions {
         }
     }
 
-    //内部类MonitorCallback，用于处理监控回调
+    //An inner class `MonitorCallback` is used to handle monitoring callbacks.
     private static class MonitorCallback {
         private int flightId;
         private SocketAddress clientAddress;
@@ -219,7 +219,7 @@ public class Functions {
             this.serverSocket = serverSocket;
         }
 
-        //当座位可用性发生变化时，发送更新消息给客户端
+        //Send an update message to the client when the seat availability changes.
         public void onSeatAvailabilityChange(Message updateMsg) {
             try {
                 byte[] responseData = Marshaller.marshall(updateMsg);
