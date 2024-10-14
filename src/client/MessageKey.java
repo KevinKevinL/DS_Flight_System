@@ -1,6 +1,6 @@
 package client;
-//消息键是一个枚举，它包含了所有可能的消息键，每个键都有一个整数值。
-//这个整数值用于在消息序列化和反序列化时标识键。
+// The message key is an enumeration that contains all possible message keys, each associated with an integer value.  
+// This integer value is used to identify the key during message serialization and deserialization.
 public enum MessageKey {
     OPTION(1),
     REQUEST_ID(2),
@@ -27,7 +27,7 @@ public enum MessageKey {
         return value;
     }
     
-//fromValue方法用于根据整数值查找消息键。
+// The `fromValue` method is used to find the message key based on the integer value.
     public static MessageKey fromValue(int value) {
         for (MessageKey key : values()) {
             if (key.value == value) {
