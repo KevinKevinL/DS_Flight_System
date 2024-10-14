@@ -46,11 +46,11 @@ public class Main {
                     DatagramPacket inputPacket = new DatagramPacket(receivingDataBuffer, receivingDataBuffer.length);
                     System.out.println("Waiting for a client to send a request...");
                     
-                    // 模拟丢包，但只在实际接收到数据包后
+                    // Simulate packet loss, but only after the packet has actually been received.
                     serverSocket.receive(inputPacket);
                     if (Math.random() < 0.2) {  // 降低丢包率到 20%
                         System.out.println("Request lost (simulated).");
-                        continue;  // 跳过这个请求，继续等待下一个
+                        continue;  // Skip this request and continue waiting for the next one.
                     }
                     
                     System.out.println("Packet received from client!");
@@ -144,7 +144,7 @@ public class Main {
     }
 
 
-    //根据请求的option调用不同的方法处理请求
+    //Call different methods to handle the request based on the requested option.
     private static Message processRequest(DatagramSocket serverSocket, int option, Message request, SocketAddress clientAddress) {
         Message response = new Message();
         System.out.println("Processing request with option: " + option);
@@ -195,7 +195,7 @@ public class Main {
                 
                 if (waitForAck(socket, response.getInt(MessageKey.REQUEST_ID), 5000)) {
                     System.out.println("ACK received from client");
-                    return; // 成功收到确认
+                    return; // Successfully received confirmation.
                 }
             } catch (IOException e) {
                 System.err.println("Error sending response: " + e.getMessage());
