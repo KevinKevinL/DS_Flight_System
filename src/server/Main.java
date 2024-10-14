@@ -16,39 +16,39 @@ public class Main {
     private static Functions functions;
 
     public static void main(String[] args) {
-        //提示用户输入参数
+        //Prompt the user to input parameters.
         if (args.length < 1) {
             System.out.println("Usage: java server.Main <mode>");
             System.out.println("mode: 'at-least-once' or 'at-most-once'");
             return;
         }
-        //判断用户输入的参数
+        //Determine the parameters entered by the user.
         isAtLeastOnce = args[0].equalsIgnoreCase("at-least-once");
         System.out.println("Server starting in " + (isAtLeastOnce ? "at-least-once" : "at-most-once") + " mode");
 
         List<Flight> database = initializeDatabase();
         functions = new Functions(database);
         InetAddress local;
-        //获取本地ip地址（服务器地址）
+        //Obtain the local IP address (server address).
         try {
             local = InetAddress.getByName("0.0.0.0");
         } catch (UnknownHostException e) {
             System.err.println("Error setting up server address: " + e.getMessage());
             return;
         }
-        //创建DatagramSocket对象,并绑定端口
+        //Create a `DatagramSocket` object and bind it to a port.
         try (DatagramSocket serverSocket = new DatagramSocket(SERVICE_PORT, local)) {
             System.out.println("Server started on port " + SERVICE_PORT);
-            //循环接收客户端请求
+            //Loop to receive client requests.
             while (true) {
                 try {
                     byte[] receivingDataBuffer = new byte[1024];
                     DatagramPacket inputPacket = new DatagramPacket(receivingDataBuffer, receivingDataBuffer.length);
                     System.out.println("Waiting for a client to send a request...");
-                    //接收客户端请求，inputPacket中保存了客户端的地址和请求数据
+                    //Receive client requests, with the client's address and request data stored in the `inputPacket`.
                     serverSocket.receive(inputPacket);
                     System.out.println("Packet received from client!");
-                    //处理客户端请求
+                    //Process the client request.
                     processPacket(serverSocket, inputPacket);
                 } catch (IOException e) {
                     System.err.println("Error receiving packet: " + e.getMessage());
@@ -62,27 +62,27 @@ public class Main {
         }
     }
 
-    //处理客户端请求的方法，将请求解码为Message对象，然后调用handleRequest方法处理请求
+    //A method to process the client request, which decodes the request into a `Message` object and then calls the `handleRequest` method to handle the request.
     private static void processPacket(DatagramSocket serverSocket, DatagramPacket inputPacket) {
         Message receivedMessage;
         try {
-            //将接收到的数据解码为Message对象
+            //Decode the received data into a `Message` object.
             receivedMessage = Marshaller.unmarshall(inputPacket.getData());
         } catch (Exception e) {
-            //解码失败，发送错误响应
+            //If decoding fails, send an error response.
             System.err.println("Error unmarshalling received data: " + e.getMessage());
             sendErrorResponse(serverSocket, inputPacket.getSocketAddress(), "Invalid message format");
             return;
         }
     
         try {
-            //获取请求id
+            //Obtain the request ID.
             String requestId = receivedMessage.getString(MessageKey.REQUEST_ID);
-            //如果请求id和全局请求id相同，说明是重复请求，直接返回之前的响应
+            //If the request ID is the same as the global request ID, it indicates a duplicate request, and the previous response should be returned directly.
             requestIdGlobal = requestId;
-            //处理请求
+            //process request
             Message response = handleRequest(serverSocket, receivedMessage, inputPacket.getSocketAddress());
-            //给客户端发送响应
+            //Send the response to the client.
             sendResponse(serverSocket, inputPacket.getSocketAddress(), response);
         } catch (IllegalArgumentException e) {
             System.err.println("Error processing request: " + e.getMessage());
@@ -107,26 +107,26 @@ public class Main {
         return database;
     }
 
-    //根据模式处理请求
+    //Process the request based on the pattern.
     private static Message handleRequest(DatagramSocket serverSocket, Message request, SocketAddress clientAddress) {
         String requestId = request.getString(MessageKey.REQUEST_ID);
         Message response;
-        //如果是at-most-once模式，且请求id在历史记录中，直接返回之前的响应
+        //If it is the at-most-once mode and the request ID is in the history, return the previous response directly.
         if (!isAtLeastOnce && history.containsKey(requestId)) {
             System.out.println("RequestId found in history " + requestId);
             response = history.get(requestId);
         } else {
-            //否则调用processRequest处理请求
+            //Otherwise, call `processRequest` to handle the request.
             int option = request.getInt(MessageKey.OPTION);
             response = processRequest(serverSocket, option, request, clientAddress);
-            //将requestId和响应加入历史记录
+            //Add the `requestId` and the response to the history.
             history.put(requestId, response);
         }
 
         return response;
     }
 
-    //根据请求的option调用不同的方法处理请求
+    //Call different methods to process the request based on the requested option.
     private static Message processRequest(DatagramSocket serverSocket, int option, Message request, SocketAddress clientAddress) {
         Message response = new Message();
         System.out.println("Processing request with option: " + option);
