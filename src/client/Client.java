@@ -237,6 +237,16 @@ public class Client {
         String destination = scanner.next();
         request.putString(MessageKey.SOURCE, source);
         request.putString(MessageKey.DESTINATION, destination);
+        
+        try {
+            Message response = sendRequestAndWaitForResponse(request);
+            if (response != null) {
+                displayResponse(response);
+                return; // 确保在收到有效响应后退出方法
+            }
+        } catch (IOException e) {
+            System.err.println("Error communicating with server: " + e.getMessage());
+        }
     }
 
     private static void freeSeats(Message request, Scanner scanner) {
