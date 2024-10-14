@@ -1,6 +1,6 @@
 package server;
-//消息类包含一个值映射，该映射将消息键映射到值。
-//这个类还包含了一些put和get方法，用于将值放入映射中或从映射中获取值。
+//The message class contains a value map that maps message keys to values.
+//This class also contains several `put` and `get` methods for putting values into the map or retrieving values from the map.
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -33,10 +33,10 @@ public class Message {
     if (value instanceof String) {
         return (String) value;
     } else if (value instanceof Integer) {
-        // 如果值是 Integer，将其转换为 String
+        // If the value is an `Integer`, convert it to a `String`.
         return String.valueOf(value);
     }
-    return null; // 或者抛出一个异常
+    return null; // Or throw an exception.
 }
 
     public Integer getInt(MessageKey key) {
