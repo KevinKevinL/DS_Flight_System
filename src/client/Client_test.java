@@ -86,12 +86,12 @@ public class Client_test {
         request.putInt(MessageKey.MONITOR_INTERVAL, monitorInterval);
     
         sendRequest(request);
-        receiveResponse(); // 接收初始响应
+        receiveResponse(); // Receive the initial response.
     
         System.out.println("Monitoring seat availability for Flight ID: " + flightId);
         System.out.println("Monitoring for " + monitorInterval + " seconds...");
     
-        // 启动一个新的线程来监听更新
+        // Start a new thread to listen for updates.
         executorService.submit(() -> {
             try {
                 long startTime = System.currentTimeMillis();
@@ -104,7 +104,7 @@ public class Client_test {
                             System.out.println("New Seat Availability: " + update.getInt(MessageKey.SEAT_AVAILABILITY));
                         }
                     } catch (SocketTimeoutException e) {
-                        // 超时，继续循环
+                        // Timeout, continue looping.
                     } catch (IOException e) {
                         System.err.println("Error receiving update: " + e.getMessage());
                     }
