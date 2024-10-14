@@ -183,7 +183,7 @@ public class Functions {
         return response;
     }
 
-    //通知所有监控的客户端的回调函数
+    //Notify the callback function of all monitored clients.
     public void notifyMonitorCallbacks() {
         for (Map.Entry<Integer, List<MonitorCallback>> entry : monitorCallbacks.entrySet()) {
             //get flightId and callbacks
