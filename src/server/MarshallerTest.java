@@ -1,8 +1,8 @@
 package server;
-//marshalling和unmarshalling方法的测试类
-//这个类将创建一个测试消息，将其编组为字节数组，然后将其解组回一个新的消息对象。
-//最后，它将比较原始消息和解组消息，以确保它们是相同的。
-//测试通过
+//The test class for the marshalling and unmarshalling methods.
+//This class will create a test message, marshal it into a byte array, and then unmarshal it back into a new message object.
+//Finally, it will compare the original message and the unmarshalled message to ensure they are the same.
+//The test passed.
 import java.util.Arrays;
 
 public class MarshallerTest {
