@@ -29,8 +29,8 @@ public class Client {
             }
             
             System.out.println("Press Enter to continue...");
-            scanner.nextLine(); // 消费之前的换行符
-            scanner.nextLine(); // 等待用户按Enter
+            scanner.nextLine(); // Consume the previous newline character.
+            scanner.nextLine(); // Wait for the user to press Enter.
         }
         socket.close();
         executorService.shutdown();
@@ -78,7 +78,7 @@ public class Client {
                 makeSeatReservation(request, scanner);
                 break;
             case 4:
-                // 特殊处理，在monitorSeatAvailability方法中完成
+                // Special handling is done in the `monitorSeatAvailability` method.
                 break;
             case 5:
                 findLowestFareBySD(request, scanner);
@@ -103,7 +103,7 @@ public class Client {
             System.out.println("Request sent to server: " + request.getValues());
             
             try {
-                Message response = receiveResponse(10000); // 10秒超时
+                Message response = receiveResponse(10000); // 10s timeout
                 if (response != null) {
                     sendAck(response.getInt(MessageKey.REQUEST_ID));
                     return response;
@@ -147,7 +147,7 @@ public class Client {
                                 System.out.println("Update for Flight ID: " + updateFlightId);
                                 System.out.println("New Seat Availability: " + seatAvailability);
                                 
-                                // 只在更新消息中包含 REQUEST_ID 时才发送 ACK
+                                // Send ACK only when the UPDATE message contains REQUEST_ID.
                                 Integer requestId = update.getInt(MessageKey.REQUEST_ID);
                                 if (requestId != null) {
                                     sendAck(requestId);
@@ -159,7 +159,7 @@ public class Client {
                             }
                         }
                     } catch (SocketTimeoutException e) {
-                        // 超时，继续循环
+                        // Timeout, continue looping.
                     } catch (IOException e) {
                         System.err.println("Error receiving update: " + e.getMessage());
                     }
