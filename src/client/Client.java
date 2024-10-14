@@ -18,26 +18,51 @@ public class Client {
 
         Scanner scanner = new Scanner(System.in);
         while (true) {
-            System.out.println("\nFlight Information System");
-            System.out.println("1. Query flight identifier");
-            System.out.println("2. Query flight details");
-            System.out.println("3. Make seat reservation");
-            System.out.println("4. Monitor seat availability");
-            System.out.println("5. Find lowest price by source and destination");
-            System.out.println("6. Free seat");
-            System.out.println("0. Exit");
-            System.out.print("Enter your choice: ");
-
+            displayMenu();
             int choice = scanner.nextInt();
             if (choice == 0) break;
 
-            processUserChoice(choice, scanner);
+            try {
+                processUserChoice(choice, scanner);
+            } catch (IOException e) {
+                System.err.println("Error communicating with server: " + e.getMessage());
+            }
+            
+            System.out.println("Press Enter to continue...");
+            scanner.nextLine(); // 消费之前的换行符
+            scanner.nextLine(); // 等待用户按Enter
         }
         socket.close();
         executorService.shutdown();
     }
 
+    private static void displayMenu() {
+        System.out.println("\nFlight Information System");
+        System.out.println("1. Query flight identifier");
+        System.out.println("2. Query flight details");
+        System.out.println("3. Make seat reservation");
+        System.out.println("4. Monitor seat availability");
+        System.out.println("5. Find lowest price by source and destination");
+        System.out.println("6. Free seat");
+        System.out.println("0. Exit");
+        System.out.print("Enter your choice: ");
+    }
+
     private static void processUserChoice(int choice, Scanner scanner) throws IOException {
+        Message request = createRequest(choice, scanner);
+        if (request == null) return;
+
+        if (choice == 4) {
+            monitorSeatAvailability(request, scanner);
+        } else {
+            Message response = sendRequestAndWaitForResponse(request);
+            if (response != null) {
+                displayResponse(response);
+            }
+        }
+    }
+
+    private static Message createRequest(int choice, Scanner scanner) {
         Message request = new Message();
         request.putInt(MessageKey.OPTION, choice);
         request.putInt(MessageKey.REQUEST_ID, generateRequestId());
@@ -53,8 +78,8 @@ public class Client {
                 makeSeatReservation(request, scanner);
                 break;
             case 4:
-                monitorSeatAvailability(request, scanner);
-                return; // 直接返回，不执行sendRequest和receiveResponse
+                // 特殊处理，在monitorSeatAvailability方法中完成
+                break;
             case 5:
                 findLowestFareBySD(request, scanner);
                 break;
@@ -63,17 +88,33 @@ public class Client {
                 break;
             default:
                 System.out.println("Invalid choice. Please try again.");
-                return;
+                return null;
         }
-
-        sendRequest(request);
-        receiveResponse();
+        return request;
     }
 
-    private static void sendRequest(Message request) throws IOException {
-        byte[] buffer = Marshaller.marshall(request);
-        DatagramPacket packet = new DatagramPacket(buffer, buffer.length, address, SERVER_PORT);
-        socket.send(packet);
+    private static Message sendRequestAndWaitForResponse(Message request) throws IOException {
+        int maxAttempts = 5;
+        int attempt = 0;
+        while (attempt < maxAttempts) {
+            byte[] buffer = Marshaller.marshall(request);
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, address, SERVER_PORT);
+            socket.send(packet);
+            System.out.println("Request sent to server: " + request.getValues());
+            
+            try {
+                Message response = receiveResponse(10000); // 10秒超时
+                if (response != null) {
+                    sendAck(response.getInt(MessageKey.REQUEST_ID));
+                    return response;
+                }
+            } catch (SocketTimeoutException e) {
+                System.out.println("Timeout, retrying... Attempt " + (attempt + 1) + " of " + maxAttempts);
+            }
+            attempt++;
+        }
+        System.err.println("Failed to receive response after " + maxAttempts + " attempts");
+        return null;
     }
 
     private static void monitorSeatAvailability(Message request, Scanner scanner) throws IOException {
@@ -85,23 +126,37 @@ public class Client {
         request.putInt(MessageKey.FLIGHT_ID, flightId);
         request.putInt(MessageKey.MONITOR_INTERVAL, monitorInterval);
     
-        sendRequest(request);
-        receiveResponse(); // 接收初始响应
+        Message initialResponse = sendRequestAndWaitForResponse(request);
+        if (initialResponse != null) {
+            displayResponse(initialResponse);
+        }
     
         System.out.println("Monitoring seat availability for Flight ID: " + flightId);
         System.out.println("Monitoring for " + monitorInterval + " seconds...");
     
-        // 启动一个新的线程来监听更新
         executorService.submit(() -> {
             try {
-                long startTime = System.currentTimeMillis();
-                while (System.currentTimeMillis() - startTime < monitorInterval * 1000) {
+                long endTime = System.currentTimeMillis() + monitorInterval * 1000;
+                while (System.currentTimeMillis() < endTime) {
                     try {
-                        socket.setSoTimeout(1000);
-                        Message update = receiveResponse();
-                        if (update.getInt(MessageKey.FLIGHT_ID) != null && update.getInt(MessageKey.SEAT_AVAILABILITY) != null) {
-                            System.out.println("Update for Flight ID: " + update.getInt(MessageKey.FLIGHT_ID));
-                            System.out.println("New Seat Availability: " + update.getInt(MessageKey.SEAT_AVAILABILITY));
+                        Message update = receiveResponse(1000);
+                        if (update != null) {
+                            Integer updateFlightId = update.getInt(MessageKey.FLIGHT_ID);
+                            Integer seatAvailability = update.getInt(MessageKey.SEAT_AVAILABILITY);
+                            if (updateFlightId != null && seatAvailability != null) {
+                                System.out.println("Update for Flight ID: " + updateFlightId);
+                                System.out.println("New Seat Availability: " + seatAvailability);
+                                
+                                // 只在更新消息中包含 REQUEST_ID 时才发送 ACK
+                                Integer requestId = update.getInt(MessageKey.REQUEST_ID);
+                                if (requestId != null) {
+                                    sendAck(requestId);
+                                } else {
+                                    System.out.println("No REQUEST_ID in update, skipping ACK.");
+                                }
+                            } else {
+                                System.out.println("Received incomplete update: " + update.getValues());
+                            }
                         }
                     } catch (SocketTimeoutException e) {
                         // 超时，继续循环
@@ -110,26 +165,38 @@ public class Client {
                     }
                 }
                 System.out.println("Monitoring ended for Flight ID: " + flightId);
-                socket.setSoTimeout(0);
-            } catch (SocketException e) {
-                System.err.println("Error setting socket timeout: " + e.getMessage());
+            } catch (Exception e) {
+                System.err.println("Error in monitoring task: " + e.getMessage());
+                e.printStackTrace();
+            } finally {
+                try {
+                    socket.setSoTimeout(0);
+                } catch (SocketException e) {
+                    System.err.println("Error resetting socket timeout: " + e.getMessage());
+                }
             }
         });
     }
 
-    private static Message receiveResponse() throws IOException {
+    private static Message receiveResponse(int timeout) throws IOException {
         byte[] buffer = new byte[1024];
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-        socket.receive(packet);
-        return Marshaller.unmarshall(packet.getData());
-    }
-
-    private static void receiveResponse1() throws IOException {
-        byte[] buffer = new byte[1024];
-        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+        socket.setSoTimeout(timeout);
+        
         socket.receive(packet);
         Message response = Marshaller.unmarshall(packet.getData());
-        displayResponse(response);
+        System.out.println("Received response from server: " + response.getValues());
+        return response;
+    }
+
+    private static void sendAck(int requestId) throws IOException {
+        Message ack = new Message();
+        ack.putInt(MessageKey.REQUEST_ID, requestId);
+        ack.putBoolean(MessageKey.ACK, true);
+        byte[] ackData = Marshaller.marshall(ack);
+        DatagramPacket ackPacket = new DatagramPacket(ackData, ackData.length, address, SERVER_PORT);
+        socket.send(ackPacket);
+        System.out.println("ACK sent for request ID: " + requestId);
     }
 
     private static int generateRequestId() {
@@ -200,7 +267,6 @@ public class Client {
             if (response.getInt(MessageKey.SEAT_AVAILABILITY) != null) {
                 System.out.println("Available Seats: " + response.getInt(MessageKey.SEAT_AVAILABILITY));
             }
-            // Other possible response fields...
         }
     }
 }

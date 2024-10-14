@@ -18,9 +18,9 @@ public class Functions {
 
     // Case 1: Check Flight ID
     public Message checkFlightID(Message request) {
+        Message response = createResponse(request);
         String source = request.getString(MessageKey.SOURCE);
         String destination = request.getString(MessageKey.DESTINATION);
-        Message response = new Message();
 
         List<Integer> matchingFlights = new ArrayList<>();
         for (Flight flight : flights) {
@@ -43,8 +43,8 @@ public class Functions {
 
     // Case 2: Check Time, Price, Seats with Flight ID
     public Message checkFlightDetails(Message request) {
+        Message response = createResponse(request);
         int flightID = request.getInt(MessageKey.FLIGHT_ID);
-        Message response = new Message();
 
         for (Flight flight : flights) {
             if (flight.getFlightID() == flightID) {
@@ -168,6 +168,18 @@ public class Functions {
         }
 
         response.putString(MessageKey.ERROR_MESSAGE, "No flight found with Flight ID " + flightID + ".");
+        return response;
+    }
+
+
+    private Message createResponse(Message request) {
+        Message response = new Message();
+        Integer requestId = request.getInt(MessageKey.REQUEST_ID);
+        if (requestId != null) {
+            response.putInt(MessageKey.REQUEST_ID, requestId);
+        } else {
+            System.err.println("Warning: Request does not contain REQUEST_ID");
+        }
         return response;
     }
 

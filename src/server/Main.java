@@ -45,10 +45,15 @@ public class Main {
                     byte[] receivingDataBuffer = new byte[1024];
                     DatagramPacket inputPacket = new DatagramPacket(receivingDataBuffer, receivingDataBuffer.length);
                     System.out.println("Waiting for a client to send a request...");
-                    //接收客户端请求，inputPacket中保存了客户端的地址和请求数据
+                    
+                    // 模拟丢包，但只在实际接收到数据包后
                     serverSocket.receive(inputPacket);
+                    if (Math.random() < 0.2) {  // 降低丢包率到 20%
+                        System.out.println("Request lost (simulated).");
+                        continue;  // 跳过这个请求，继续等待下一个
+                    }
+                    
                     System.out.println("Packet received from client!");
-                    //处理客户端请求
                     processPacket(serverSocket, inputPacket);
                 } catch (IOException e) {
                     System.err.println("Error receiving packet: " + e.getMessage());
@@ -110,21 +115,34 @@ public class Main {
     //根据模式处理请求
     private static Message handleRequest(DatagramSocket serverSocket, Message request, SocketAddress clientAddress) {
         String requestId = request.getString(MessageKey.REQUEST_ID);
+        if (requestId == null) {
+            System.err.println("Warning: Received request without REQUEST_ID");
+            requestId = generateRequestId();
+        }
         Message response;
-        //如果是at-most-once模式，且请求id在历史记录中，直接返回之前的响应
         if (!isAtLeastOnce && history.containsKey(requestId)) {
             System.out.println("RequestId found in history " + requestId);
             response = history.get(requestId);
         } else {
-            //否则调用processRequest处理请求
             int option = request.getInt(MessageKey.OPTION);
             response = processRequest(serverSocket, option, request, clientAddress);
-            //将requestId和响应加入历史记录
+            response.putInt(MessageKey.REQUEST_ID, Integer.parseInt(requestId));
             history.put(requestId, response);
         }
-
         return response;
     }
+
+    private static String generateRequestId() {
+        return String.valueOf((int) (Math.random() * 1000000));
+    }
+
+    private static void sendErrorResponse(DatagramSocket socket, SocketAddress address, String errorMessage) {
+        Message errorResponse = new Message();
+        errorResponse.putString(MessageKey.ERROR_MESSAGE, errorMessage);
+        errorResponse.putInt(MessageKey.REQUEST_ID, Integer.parseInt(generateRequestId()));
+        sendResponse(socket, address, errorResponse);
+    }
+
 
     //根据请求的option调用不同的方法处理请求
     private static Message processRequest(DatagramSocket serverSocket, int option, Message request, SocketAddress clientAddress) {
@@ -166,18 +184,41 @@ public class Main {
     }
 
     private static void sendResponse(DatagramSocket socket, SocketAddress address, Message response) {
+        int maxAttempts = 5;
+        int attempt = 0;
+        while (attempt < maxAttempts) {
+            try {
+                byte[] responseData = Marshaller.marshall(response);
+                DatagramPacket responsePacket = new DatagramPacket(responseData, responseData.length, address);
+                socket.send(responsePacket);
+                System.out.println("Response sent to client: " + response.getValues());
+                
+                if (waitForAck(socket, response.getInt(MessageKey.REQUEST_ID), 5000)) {
+                    System.out.println("ACK received from client");
+                    return; // 成功收到确认
+                }
+            } catch (IOException e) {
+                System.err.println("Error sending response: " + e.getMessage());
+            }
+            attempt++;
+            System.out.println("No ACK received, retrying... Attempt " + attempt + " of " + maxAttempts);
+        }
+        System.err.println("Failed to send response after " + maxAttempts + " attempts");
+    }
+    
+    private static boolean waitForAck(DatagramSocket socket, int expectedRequestId, int timeout) throws IOException {
         try {
-            byte[] responseData = Marshaller.marshall(response);
-            DatagramPacket responsePacket = new DatagramPacket(responseData, responseData.length, address);
-            socket.send(responsePacket);
-        } catch (IOException e) {
-            System.err.println("Error sending response: " + e.getMessage());
+            socket.setSoTimeout(timeout);
+            byte[] ackBuffer = new byte[1024];
+            DatagramPacket ackPacket = new DatagramPacket(ackBuffer, ackBuffer.length);
+            socket.receive(ackPacket);
+            Message ackMessage = Marshaller.unmarshall(ackPacket.getData());
+            return ackMessage.getBoolean(MessageKey.ACK) != null && 
+                   ackMessage.getBoolean(MessageKey.ACK) && 
+                   ackMessage.getInt(MessageKey.REQUEST_ID) == expectedRequestId;
+        } catch (SocketTimeoutException e) {
+            return false;
         }
     }
 
-    private static void sendErrorResponse(DatagramSocket socket, SocketAddress address, String errorMessage) {
-        Message errorResponse = new Message();
-        errorResponse.putString(MessageKey.ERROR_MESSAGE, errorMessage);
-        sendResponse(socket, address, errorResponse);
-    }
 }

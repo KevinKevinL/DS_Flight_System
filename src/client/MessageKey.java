@@ -14,7 +14,8 @@ public enum MessageKey {
     ERROR_MESSAGE(10),
     DEPARTURE_TIME(11),
     AIRFARE(12),
-    SEAT_AVAILABILITY(13);
+    SEAT_AVAILABILITY(13),
+    ACK(14);
 
     private final int value;
 
